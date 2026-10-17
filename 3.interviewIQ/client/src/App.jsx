@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useDispatch } from 'react-redux';
 
 import Home from './pages/Home.jsx';
-import Auth from "./pages/Auth";
+import Auth from './pages/Auth';
 import InterviewPage from './pages/InterviewPage.jsx';
 import InterviewHistory from './pages/InterviewHistory.jsx';
 import Pricing from './pages/Pricing.jsx';
@@ -13,8 +13,6 @@ import InterviewReport from './pages/InterviewReport.jsx';
 
 import { setUserData } from './redux/userSlice.js';
 
-// Backend URL:
-// Configure VITE_API_URL in Vercel for production.
 export const ServerUrl =
   import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -26,9 +24,7 @@ function App() {
       try {
         const result = await axios.get(
           `${ServerUrl}/api/user/current-user`,
-          {
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
 
         dispatch(setUserData(result.data));
