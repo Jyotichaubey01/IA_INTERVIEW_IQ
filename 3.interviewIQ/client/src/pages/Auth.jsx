@@ -16,23 +16,25 @@ function Auth({ isModel = false }) {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleGoogleAuth = async () => {
     if (loading) return;
 
     setLoading(true);
     setErrorMessage("");
+    setSuccessMessage("");
 
     try {
-      // Sign in with Google using Firebase.
+      // Step 1: Sign in with Google through Firebase.
       const response = await signInWithPopup(auth, provider);
       const user = response.user;
 
-      if (!user?.email) {
-        throw new Error("Google account email could not be found.");
+      if (!user || !user.email) {
+        throw new Error("Unable to get your Google account details.");
       }
 
-      // Send the authenticated user's details to your backend.
+      // Step 2: Send user details to the backend.
       const result = await axios.post(
         `${ServerUrl}/api/auth/google`,
         {
@@ -46,39 +48,58 @@ function Auth({ isModel = false }) {
           headers: {
             "Content-Type": "application/json",
           },
+          timeout: 20000,
         }
       );
 
-      // Save the backend response in Redux.
-      dispatch(setUserData(result.data));
+      // Step 3: Update Redux with the backend response.
+      // Adjust this if your API returns the user inside result.data.user.
+      const userData = result.data?.user ?? result.data;
 
-      setErrorMessage("");
+      dispatch(setUserData(userData));
+      setSuccessMessage("Google sign-in successful!");
+
     } catch (error) {
       console.error("Google authentication error:", error);
 
       if (error.response) {
         setErrorMessage(
           error.response.data?.message ||
-            `Server authentication failed (${error.response.status}).`
+            `Server error (${error.response.status}). Please try again.`
         );
       } else if (error.code === "auth/popup-closed-by-user") {
-        setErrorMessage("Sign-in was cancelled. Please try again.");
+        setErrorMessage("Sign-in cancelled. Please try again.");
       } else if (error.code === "auth/popup-blocked") {
-        setErrorMessage("Your browser blocked the sign-in popup. Please allow popups and try again.");
+        setErrorMessage(
+          "Popup blocked. Please allow popups and try again."
+        );
       } else if (
         error.code === "auth/invalid-api-key" ||
         error.code === "auth/api-key-not-valid"
       ) {
         setErrorMessage(
-          "Your Firebase API key is invalid. Check your Firebase configuration."
+          "Invalid Firebase API key. Check your Firebase environment variables."
         );
       } else if (error.code === "auth/unauthorized-domain") {
         setErrorMessage(
-          "This website domain is not authorized in Firebase. Add your domain in Firebase Authentication settings."
+          "This domain is not authorized in Firebase. Add your deployed domain to Firebase Authentication's authorized domains."
         );
       } else if (error.code === "auth/network-request-failed") {
         setErrorMessage(
-          "Network error. Check your internet connection and try again."
+          "Network error. Check your internet connection."
+        );
+      } else if (
+        error.code === "auth/account-exists-with-different-credential"
+      ) {
+        setErrorMessage(
+          "An account already exists with a different sign-in method."
+        );
+      } else if (
+        error.code === "ECONNABORTED" ||
+        error.code === "ERR_NETWORK"
+      ) {
+        setErrorMessage(
+          "Cannot reach the backend. Check your deployed API URL and server status."
         );
       } else {
         setErrorMessage(
@@ -99,58 +120,92 @@ function Auth({ isModel = false }) {
       }`}
     >
       <motion.div
-        initial={{ opacity: 0, y: -40 }}
+        initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7 }}
+        transition={{ duration: 0.6 }}
         className={`w-full ${
           isModel
             ? "max-w-md p-8 rounded-3xl"
-            : "max-w-lg p-12 rounded-[32px]"
+            : "max-w-lg p-8 md:p-12 rounded-[32px]"
         } bg-white shadow-2xl border border-gray-200`}
       >
+        {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-6">
           <div className="bg-black text-white p-2 rounded-lg">
-            <BsRobot size={18} />
+            <BsRobot size={20} />
           </div>
 
-          <h2 className="font-semibold text-lg">InterviewIQ.AI</h2>
+          <h2 className="font-semibold text-lg">
+            InterviewIQ.AI
+          </h2>
         </div>
 
+        {/* Heading */}
         <h1 className="text-2xl md:text-3xl font-semibold text-center leading-snug mb-4">
           Continue with{" "}
-          <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full inline-flex items-center gap-2">
+          <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full inline-flex items-center gap-2 mt-2">
             <IoSparkles size={16} />
             AI Smart Interview
           </span>
         </h1>
 
         <p className="text-gray-500 text-center text-sm md:text-base leading-relaxed mb-8">
-          Sign in to start AI-powered mock interviews, track your progress,
-          and unlock detailed performance insights.
+          Sign in to start AI-powered mock interviews, track
+          your progress, and unlock detailed performance insights.
         </p>
 
+        {/* Error message */}
         {errorMessage && (
-          <p
+          <div
             role="alert"
             aria-live="polite"
-            className="mb-4 text-center text-sm text-red-600"
+            className="mb-5 rounded-xl bg-red-50 border border-red-200 p-3 text-center text-sm text-red-700"
           >
             {errorMessage}
-          </p>
+          </div>
         )}
 
+        {/* Success message */}
+        {successMessage && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-5 rounded-xl bg-green-50 border border-green-200 p-3 text-center text-sm text-green-700"
+          >
+            {successMessage}
+          </div>
+        )}
+
+        {/* Google sign-in */}
         <motion.button
           type="button"
           onClick={handleGoogleAuth}
           disabled={loading}
-          whileHover={!loading ? { opacity: 0.9, scale: 1.02 } : {}}
+          whileHover={
+            !loading ? { opacity: 0.9, scale: 1.02 } : {}
+          }
           whileTap={!loading ? { scale: 0.98 } : {}}
-          className="w-full flex items-center justify-center gap-3 py-3 bg-black text-white rounded-full shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-3 py-3 px-5 bg-black text-white rounded-full shadow-md transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <FcGoogle size={20} />
+          {loading ? (
+            <span
+              className="h-5 w-5 rounded-full border-2 border-white border-t-transparent animate-spin"
+              aria-hidden="true"
+            />
+          ) : (
+            <FcGoogle size={22} />
+          )}
 
-          {loading ? "Signing in..." : "Continue with Google"}
+          <span>
+            {loading
+              ? "Signing in..."
+              : "Continue with Google"}
+          </span>
         </motion.button>
+
+        <p className="text-center text-xs text-gray-400 mt-6">
+          Secure sign-in powered by Google and Firebase.
+        </p>
       </motion.div>
     </div>
   );
