@@ -5,7 +5,7 @@ import axios from 'axios';
 import { useDispatch } from 'react-redux';
 
 import Home from './pages/Home.jsx';
-import Auth from "../pages/Auth.jsx";
+import Auth from "./pages/Auth.jsx";
 import InterviewPage from './pages/InterviewPage.jsx';
 import InterviewHistory from './pages/InterviewHistory.jsx';
 import Pricing from './pages/Pricing.jsx';
@@ -57,3 +57,4 @@ function App() {
 }
 
 export default App;
+
